@@ -66,7 +66,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun processSelectedFile(uri: Uri) {
         try {
-            // 1. Читаем весь текст из файла
             val fileContent = contentResolver.openInputStream(uri)?.bufferedReader().use { reader ->
                 reader?.readText()
             }
@@ -78,7 +77,6 @@ class MainActivity : AppCompatActivity() {
 
             Log.d("FilePicker", "Содержимое файла:\n$fileContent")
 
-            // 2. Настраиваем Moshi для парсинга JSON-массива OrderItem
             val moshi = Moshi.Builder()
                 .add(com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory())
                 .build()
@@ -86,7 +84,6 @@ class MainActivity : AppCompatActivity() {
             val adapter = moshi.adapter<List<OrderItem>>(type)
 
 
-            // 3. Парсим JSON
             Data.orders = adapter.fromJson(fileContent)
 
             if (Data.orders != null) {
@@ -104,19 +101,4 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-}
-
-data class OrderItem(
-    val type: String,
-    val number: Int,
-    val address: String,
-    val name: String,
-    val orderTime: String,
-    val volume: Double,
-    val weight: Double,
-    val price: Double
-)
-
-object Data {
-    var orders : List<OrderItem>? = emptyList()
 }
