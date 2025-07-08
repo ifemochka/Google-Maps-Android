@@ -6,6 +6,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.PolylineOptions
 
 class GoogleMapWrapper(private val googleMap: GoogleMap) : IMap {
 
@@ -58,5 +59,15 @@ class GoogleMapWrapper(private val googleMap: GoogleMap) : IMap {
         googleMap.setOnInfoWindowClickListener { marker ->
             listener(GoogleMapMarkerWrapper(marker))
         }
+    }
+
+    override fun addPolyline(points: List<LatLng>): IMapPolyline {
+        val polyline = googleMap.addPolyline(
+            PolylineOptions()
+                .addAll(points)
+                .color(android.graphics.Color.BLUE)
+                .width(8f)
+        )
+        return GoogleMapPolyline(polyline)
     }
 }

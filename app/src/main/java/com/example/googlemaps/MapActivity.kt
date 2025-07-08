@@ -3,6 +3,7 @@ package com.example.googlemaps
 import android.Manifest
 import android.app.AlertDialog
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.location.Geocoder
 import android.location.Location
 import android.os.Bundle
@@ -24,11 +25,22 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.PolylineOptions
+
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import org.json.JSONObject
+
+import java.io.IOException
 
 class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var map: IMap
+    private var currentPolyline: IMapPolyline? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,8 +58,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun plotOrders() {
-        val sendersOrders = mutableListOf<OrderItem>()
-        val recipientsOrders = mutableListOf<OrderItem>()
         val sendersLatLng = mutableListOf<LatLng>()
         val recipientsLatLng = mutableListOf<LatLng>()
         val sendersMarkers = mutableListOf<IMapMarker>()
@@ -60,17 +70,13 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         for (i in 0 until size) {
             val order = Data.orders!![i]
             val geocoder = Geocoder(this)
-            val addresses = geocoder.getFromLocationName(order.address, 1)
-            val location = addresses?.getOrNull(0)
-            if (location != null) {
-                val latLng = LatLng(location.latitude, location.longitude)
-                if (order.type == "s") {
-                    sendersOrders.add(order)
-                    sendersLatLng.add(latLng)
-                } else {
-                    recipientsOrders.add(order)
-                    recipientsLatLng.add(latLng)
-                }
+            val senderAddress = geocoder.getFromLocationName(order.senderAddress, 1)?.getOrNull(0)
+            val recipientAddress = geocoder.getFromLocationName(order.recipientAddress, 1)?.getOrNull(0)
+            if (senderAddress != null && recipientAddress != null) {
+                val senderLatLng = LatLng(senderAddress.latitude, senderAddress.longitude)
+                val recipientLatLng = LatLng(recipientAddress.latitude, recipientAddress.longitude)
+                sendersLatLng.add(senderLatLng)
+                recipientsLatLng.add(recipientLatLng)
             }
         }
 
@@ -79,7 +85,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                 map.addMarker(
                     position = sendersLatLng[i],
                     title = "Sender ${i + 1}",
-                    snippet = "Отправитель: ${sendersOrders[i].address}",
+                    snippet = "Отправитель: ${Data.orders!!.get(i).senderAddress}",
                     type = "s",
                     id = i
                 )
@@ -89,7 +95,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                 map.addMarker(
                     position = recipientsLatLng[i],
                     title = "Recipient ${i + 1}",
-                    snippet = "Получатель: ${recipientsOrders[i].address}",
+                    snippet = "Получатель: ${Data.orders!!.get(i).recipientAddress}",
                     type = "r",
                     id = i
                 )
@@ -105,8 +111,10 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         var selectedRecipient: IMapMarker? = null
 
         map.setOnMarkerClickListener { type, id, marker ->
+            Log.d("MarkerClicker", "clicked")
             selectedSender?.setIcon(BitmapDescriptorFactory.HUE_YELLOW)
             selectedRecipient?.setIcon(BitmapDescriptorFactory.HUE_GREEN)
+            
 
             if (type == "s") {
                 marker.setIcon(BitmapDescriptorFactory.HUE_RED)
@@ -123,6 +131,10 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             }
 
             marker.showInfoWindow()
+
+            if (selectedSender != null && selectedRecipient != null) {
+                getDirections(selectedSender!!.getPosition(), selectedRecipient!!.getPosition())
+            }
         }
 
         map.setOnInfoWindowClickListener { marker ->
@@ -132,28 +144,20 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             val id = parts?.getOrNull(1)?.toIntOrNull()
             Log.d("Info", "Заказ: $tag")
 
-            var senderAdress : String
-            var reecipientAdress : String
+            var senderAddress : String
+            var reecipientAddress : String
 
-            val order : OrderItem?
-            if (type == "s") {
-                order = Data.orders?.get(id!! * 2)
-                senderAdress = order!!.address
-                reecipientAdress = Data.orders?.get(id!! * 2 + 1)!!.address
-            }
-            else{
-                order = Data.orders?.get(id!! * 2 + 1)
-                senderAdress = Data.orders?.get(id!! * 2)!!.address
-                reecipientAdress = order!!.address
-            }
+            val order = Data.orders?.get(id!! )
+            senderAddress = order!!.senderAddress
+            reecipientAddress = order!!.recipientAddress
 
             if (order != null) {
                 val message = """
            
             Номер: ${order.number}
-            Адрес отправителя: ${senderAdress}
-            Адрес получателя: ${reecipientAdress}
-            Имя: ${order.name}
+            Адрес отправителя: ${senderAddress}
+            Адрес получателя: ${reecipientAddress}
+            Имя: ${order.naming}
             Время заказа: ${order.orderTime}
             Объём: ${order.volume}
             Вес: ${order.weight}
@@ -196,4 +200,73 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
+    private fun getDirections(origin: LatLng, destination: LatLng) {
+        val url = "https://router.project-osrm.org/route/v1/driving/" +
+                "${origin.longitude},${origin.latitude};" +
+                "${destination.longitude},${destination.latitude}" +
+                "?overview=full&geometries=polyline"
+
+        val request = Request.Builder()
+            .url(url)
+            .build()
+
+        val client = OkHttpClient()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.body?.string()?.let { responseData ->
+                    val json = JSONObject(responseData)
+                    val routes = json.getJSONArray("routes")
+                    if (routes.length() > 0) {
+                        val overviewPolyline = routes.getJSONObject(0)
+                            .getString("geometry") // в OSRM поле называется geometry
+
+                        val points = decodePolyline(overviewPolyline)
+
+                        runOnUiThread {
+                            currentPolyline?.remove()
+                            currentPolyline = map.addPolyline(points)
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    private fun decodePolyline(encoded: String): List<LatLng> {
+        val poly = ArrayList<LatLng>()
+        var index = 0
+        val len = encoded.length
+        var lat = 0
+        var lng = 0
+
+        while (index < len) {
+            var b: Int
+            var shift = 0
+            var result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or ((b and 0x1f) shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlat = if ((result and 1) != 0) (result shr 1).inv() else result shr 1
+            lat += dlat
+
+            shift = 0
+            result = 0
+            do {
+                b = encoded[index++].code - 63
+                result = result or ((b and 0x1f) shl shift)
+                shift += 5
+            } while (b >= 0x20)
+            val dlng = if ((result and 1) != 0) (result shr 1).inv() else result shr 1
+            lng += dlng
+
+            poly.add(LatLng(lat / 1E5, lng / 1E5))
+        }
+        return poly
+    }
 }

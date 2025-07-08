@@ -1,6 +1,7 @@
 package com.example.googlemaps
 
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 
 class GoogleMapMarkerWrapper(private val marker: Marker) : IMapMarker {
@@ -22,6 +23,10 @@ class GoogleMapMarkerWrapper(private val marker: Marker) : IMapMarker {
 
     override fun getTag(): Any? {
         return marker.tag
+    }
+
+    override fun getPosition(): LatLng {
+        return marker.position
     }
 
 }

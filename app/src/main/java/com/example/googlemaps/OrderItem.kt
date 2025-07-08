@@ -1,15 +1,26 @@
 package com.example.googlemaps
 
+import android.net.Uri
+import java.io.Serializable
+
 data class OrderItem(
-    val type: String,
     val number: Int,
-    val address: String,
-    val name: String,
+    val senderAddress: String,
+    val recipientAddress: String,
+    val naming: String,
     val orderTime: String,
     val volume: Double,
     val weight: Double,
     val price: Double
 )
+
+data class CompletedOrderItem(
+    val baseOrder: OrderItem,
+    var pickupDate: String? = null,
+    var deliveryDate: String? = null,
+    var productPhotoUri: Uri? = null
+) : Serializable
+
 
 object Data {
     var orders : List<OrderItem>? = emptyList()
