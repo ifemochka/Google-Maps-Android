@@ -2,6 +2,7 @@ package com.example.googlemaps
 
 import android.Manifest
 import android.app.AlertDialog
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Geocoder
@@ -140,38 +141,17 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         map.setOnInfoWindowClickListener { marker ->
             val tag = marker.getTag() as? String
             val parts = tag?.split("_")
-            val type = parts?.getOrNull(0)
             val id = parts?.getOrNull(1)?.toIntOrNull()
-            Log.d("Info", "Заказ: $tag")
-
-            var senderAddress : String
-            var reecipientAddress : String
-
-            val order = Data.orders?.get(id!! )
-            senderAddress = order!!.senderAddress
-            reecipientAddress = order!!.recipientAddress
+            val order = Data.orders?.getOrNull(id ?: return@setOnInfoWindowClickListener)
 
             if (order != null) {
-                val message = """
-           
-            Номер: ${order.number}
-            Адрес отправителя: ${senderAddress}
-            Адрес получателя: ${reecipientAddress}
-            Имя: ${order.naming}
-            Время заказа: ${order.orderTime}
-            Объём: ${order.volume}
-            Вес: ${order.weight}
-            Цена: ${order.price}
-        """.trimIndent()
-
-                AlertDialog.Builder(this)
-                    .setTitle("Детали заказа")
-                    .setMessage(message)
-                    .setPositiveButton("OK", null)
-                    .show()
+                val intent = Intent(this, OrderDetailsActivity::class.java)
+                intent.putExtra("order", order)
+                intent.putExtra("id", id!!)
+                startActivity(intent)
             }
-
         }
+
 
 
     }
@@ -235,6 +215,16 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         })
     }
+
+    override fun onResume() {
+        super.onResume()
+        if (::map.isInitialized) {
+            map.clear()
+            plotOrders()
+        }
+    }
+
+
 
     private fun decodePolyline(encoded: String): List<LatLng> {
         val poly = ArrayList<LatLng>()

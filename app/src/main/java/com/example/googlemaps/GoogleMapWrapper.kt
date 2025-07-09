@@ -1,11 +1,15 @@
 package com.example.googlemaps
 
+import android.graphics.Color
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Gap
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.PatternItem
 import com.google.android.gms.maps.model.PolylineOptions
 
 class GoogleMapWrapper(private val googleMap: GoogleMap) : IMap {
@@ -31,6 +35,10 @@ class GoogleMapWrapper(private val googleMap: GoogleMap) : IMap {
         return GoogleMapMarkerWrapper(marker)
     }
 
+    override fun clear() {
+        googleMap.clear()
+    }
+
 
     override fun moveCamera(position: LatLng, zoom: Float) {
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(position, zoom))
@@ -51,9 +59,18 @@ class GoogleMapWrapper(private val googleMap: GoogleMap) : IMap {
 
 
     override fun showCurrentLocationMarker(position: LatLng) {
-        googleMap.addMarker(MarkerOptions().position(position).title("Вы здесь"))
+        val grayMarkerIcon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)
+
+        googleMap.addMarker(
+            MarkerOptions()
+                .position(position)
+                .title("Вы здесь")
+                .icon(grayMarkerIcon)
+        )
+
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(position, 15f))
     }
+
 
     override fun setOnInfoWindowClickListener(listener: (IMapMarker) -> Unit) {
         googleMap.setOnInfoWindowClickListener { marker ->
@@ -62,11 +79,14 @@ class GoogleMapWrapper(private val googleMap: GoogleMap) : IMap {
     }
 
     override fun addPolyline(points: List<LatLng>): IMapPolyline {
+        val pattern: List<PatternItem> = listOf(Dash(30f), Gap(20f))
+
         val polyline = googleMap.addPolyline(
             PolylineOptions()
                 .addAll(points)
-                .color(android.graphics.Color.BLUE)
+                .color(Color.BLUE)
                 .width(8f)
+                .pattern(pattern)
         )
         return GoogleMapPolyline(polyline)
     }

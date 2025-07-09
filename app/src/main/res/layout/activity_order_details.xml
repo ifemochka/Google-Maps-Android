@@ -2,15 +2,74 @@
     android:orientation="vertical" android:layout_width="match_parent"
     android:layout_height="match_parent" android:padding="16dp">
 
-    <TextView android:id="@+id/senderAddressText"
-        android:layout_width="wrap_content" android:layout_height="wrap_content" />
+    <TextView
+        android:id="@+id/senderAddressText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:padding="4dp" />
 
-    <TextView android:id="@+id/recipientAddressText"
-        android:layout_width="wrap_content" android:layout_height="wrap_content" />
+    <TextView
+        android:id="@+id/recipientAddressText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="16sp"
+        android:padding="4dp"/>
 
-    <Button android:id="@+id/pickupDateButton"
-        android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="Выбрать дату забора" />
+    <TextView
+        android:id="@+id/orderNumberText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Номер заказа: "
+        android:textSize="16sp"
+        android:padding="4dp" />
+
+    <TextView
+        android:id="@+id/orderNamingText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Название груза: "
+        android:textSize="16sp"
+        android:padding="4dp" />
+
+    <TextView
+        android:id="@+id/orderTimeText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Время заказа: "
+        android:textSize="16sp"
+        android:padding="4dp" />
+
+    <TextView
+        android:id="@+id/orderVolumeText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Объём: "
+        android:textSize="16sp"
+        android:padding="4dp" />
+
+    <TextView
+        android:id="@+id/orderWeightText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Вес: "
+        android:textSize="16sp"
+        android:padding="4dp" />
+
+    <TextView
+        android:id="@+id/orderPriceText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Стоимость: "
+        android:textSize="16sp"
+        android:padding="4dp" />
+
+
+    <Button
+        android:id="@+id/pickupDateButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Выбрать дату принятия" />
 
     <Button android:id="@+id/deliveryDateButton"
         android:layout_width="wrap_content" android:layout_height="wrap_content"
@@ -24,4 +83,15 @@
         android:layout_width="match_parent" android:layout_height="200dp"
         android:scaleType="centerCrop"
         android:layout_marginTop="10dp"/>
+
+
+    <Button
+        android:id="@+id/saveButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Сохранить"
+        android:layout_marginTop="16dp"
+        />
+
+
 </LinearLayout>

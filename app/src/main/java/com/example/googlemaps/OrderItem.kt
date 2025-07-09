@@ -12,7 +12,7 @@ data class OrderItem(
     val volume: Double,
     val weight: Double,
     val price: Double
-)
+): Serializable
 
 data class CompletedOrderItem(
     val baseOrder: OrderItem,
@@ -23,5 +23,6 @@ data class CompletedOrderItem(
 
 
 object Data {
-    var orders : List<OrderItem>? = emptyList()
+    var orders : MutableList<OrderItem>? = mutableListOf()
+    var completedOrders : MutableList<CompletedOrderItem> = mutableListOf()
 }

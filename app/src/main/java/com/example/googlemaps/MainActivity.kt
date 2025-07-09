@@ -2,26 +2,12 @@ package com.example.googlemaps
 
 import android.app.Activity
 import android.content.Intent
-import android.location.Geocoder
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.cardview.widget.CardView
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import com.google.android.gms.maps.CameraUpdate
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.OnMapReadyCallback
-import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 
@@ -81,10 +67,13 @@ class MainActivity : AppCompatActivity() {
                 .add(com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory())
                 .build()
             val type = Types.newParameterizedType(List::class.java, OrderItem::class.java)
-            val adapter = moshi.adapter<List<OrderItem>>(type)
+            val adapter = moshi.adapter<MutableList<OrderItem>>(type)
 
 
             Data.orders = adapter.fromJson(fileContent)
+            for(i in 0 until Data.orders!!.size){
+                Data.completedOrders.add(CompletedOrderItem(Data.orders!![i]))
+            }
 
             if (Data.orders != null) {
                 Log.d("FilePicker", "Прочитано ${Data.orders!!.size} заказов")
