@@ -8,6 +8,8 @@ import android.util.Log
 import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 
@@ -18,6 +20,10 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        val recyclerView: RecyclerView = findViewById(R.id.orderListRecyclerView)
+        recyclerView.layoutManager = LinearLayoutManager(this)
+
 
         val pickFileButton: Button = findViewById(R.id.button_pick_file)
         pickFileButton.setOnClickListener {
@@ -71,6 +77,14 @@ class MainActivity : AppCompatActivity() {
 
 
             Data.orders = adapter.fromJson(fileContent)
+
+
+            Data.orders?.let { list ->
+                val adapter = OrderAdapter(list)
+                findViewById<RecyclerView>(R.id.orderListRecyclerView).adapter = adapter
+            }
+
+
             for(i in 0 until Data.orders!!.size){
                 Data.completedOrders.add(CompletedOrderItem(Data.orders!![i]))
             }
