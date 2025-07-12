@@ -20,34 +20,24 @@
         android:layout_height="match_parent"/>
 
     <androidx.cardview.widget.CardView
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        app:cardCornerRadius="16dp"
-        android:id="@+id/plus"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/minus" >
-        <TextView
-            android:gravity="center"
-            android:text="+"
-            android:textSize="48dp"
-            android:layout_height="match_parent"
-            android:layout_width="match_parent"/>
-    </androidx.cardview.widget.CardView>
+        android:id="@+id/menuCard"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:backgroundTint="#FFFFFF"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="6dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
-    <androidx.cardview.widget.CardView
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        app:cardCornerRadius="16dp"
-        android:layout_marginBottom="60dp"
-        android:id="@+id/minus"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" >
-        <TextView
-            android:gravity="center"
-            android:text="-"
-            android:textSize="48dp"
-            android:layout_height="match_parent"
-            android:layout_width="match_parent"/>
+        <ImageButton
+            android:id="@+id/menuButton"
+            android:layout_width="30dp"
+            android:layout_height="48dp"
+            android:padding="8dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="Меню"
+            android:src="@drawable/ic_more_vert_24" />
     </androidx.cardview.widget.CardView>
 
 

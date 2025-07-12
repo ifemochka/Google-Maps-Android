@@ -10,4 +10,5 @@ interface IMap {
     fun showCurrentLocationMarker(position: LatLng)
     fun setOnInfoWindowClickListener(listener: (IMapMarker) -> Unit)
     fun addPolyline(points: List<LatLng>) : IMapPolyline
+    fun setOnMapLongClickListener(listener: (LatLng) -> Unit)
 }

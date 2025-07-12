@@ -90,4 +90,10 @@ class GoogleMapWrapper(private val googleMap: GoogleMap) : IMap {
         )
         return GoogleMapPolyline(polyline)
     }
+
+    override fun setOnMapLongClickListener(listener: (LatLng) -> Unit) {
+        googleMap.setOnMapLongClickListener {
+            listener(it)
+        }
+    }
 }

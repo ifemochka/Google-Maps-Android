@@ -2,6 +2,7 @@ package com.example.googlemaps
 
 import android.Manifest
 import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -9,12 +10,16 @@ import android.location.Geocoder
 import android.location.Location
 import android.os.Bundle
 import android.util.Log
+import android.widget.ImageButton
+import android.widget.PopupMenu
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdate
@@ -26,6 +31,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import kotlinx.coroutines.*
 import com.google.android.gms.maps.model.PolylineOptions
 
 import okhttp3.Call
@@ -36,12 +42,19 @@ import okhttp3.Response
 import org.json.JSONObject
 
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var map: IMap
     private var currentPolyline: IMapPolyline? = null
+    private var orderState = OrderState.NONE
+    private var tempSenderLatLng: LatLng? = null
+    private var currentLatLng: LatLng? = null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,6 +66,26 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
+        val menuButton = findViewById<ImageButton>(R.id.menuButton)
+
+        menuButton.setOnClickListener {
+            val popup = PopupMenu(this, menuButton)
+            popup.menuInflater.inflate(R.menu.map_menu, popup.menu)
+
+            popup.setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    R.id.menu_add_order -> {
+                        orderState = OrderState.SELECTING_SENDER
+                        Toast.makeText(this, "Долгим нажатием укажите адрес отправителя", Toast.LENGTH_LONG).show()
+                        true
+                    }
+                    else -> false
+                }
+            }
+
+            popup.show()
+        }
+
         map = GoogleMapWrapper(googleMap)
         showCurrentLocation()
         plotOrders()
@@ -104,10 +137,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
         }
 
-        if (sendersLatLng.isNotEmpty()) {
-            map.moveCamera(sendersLatLng[0], 14f)
-        }
-
         var selectedSender: IMapMarker? = null
         var selectedRecipient: IMapMarker? = null
 
@@ -115,7 +144,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             Log.d("MarkerClicker", "clicked")
             selectedSender?.setIcon(BitmapDescriptorFactory.HUE_YELLOW)
             selectedRecipient?.setIcon(BitmapDescriptorFactory.HUE_GREEN)
-            
+
 
             if (type == "s") {
                 marker.setIcon(BitmapDescriptorFactory.HUE_RED)
@@ -152,6 +181,78 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
 
+        map.setOnMapLongClickListener { latLng ->
+            var i = Data.orders?.size!!
+            var senderAddressFromLatLng : String? = null
+            var reciptientAddressFromLatLng : String? = null
+            when (orderState) {
+                OrderState.SELECTING_SENDER -> {
+                    tempSenderLatLng = latLng
+                    sendersLatLng.add(latLng)
+
+                    lifecycleScope.launch {
+                        val senderAddress = getAddressString(this@MapActivity, latLng) ?: "Неизвестный адрес"
+
+                        sendersMarkers.add(
+                            map.addMarker(
+                                position = latLng,
+                                title = "Sender ${i + 1}",
+                                snippet = "Отправитель: $senderAddress",
+                                type = "s",
+                                id = i
+                            )
+                        )
+
+                        // Переход к следующему шагу
+                        Toast.makeText(this@MapActivity, "Теперь выберите адрес получателя", Toast.LENGTH_LONG).show()
+                        orderState = OrderState.SELECTING_RECIPIENT
+                    }
+                }
+
+                OrderState.SELECTING_RECIPIENT -> {
+                    recipientsLatLng.add(latLng)
+
+                    lifecycleScope.launch {
+                        val recipientAddress = getAddressString(this@MapActivity, latLng) ?: "Неизвестный адрес"
+
+                        recipientsMarkers.add(
+                            map.addMarker(
+                                position = latLng,
+                                title = "Recipient ${i + 1}",
+                                snippet = "Получатель: $recipientAddress",
+                                type = "r",
+                                id = i
+                            )
+                        )
+
+                        val order = OrderItem(
+                            number = Data.orders?.size!! + 1,
+                            senderAddress = getAddressString(this@MapActivity, tempSenderLatLng!!) ?: "Неизвестный адрес",
+                            recipientAddress = recipientAddress,
+                            naming = "Новый заказ",
+                            orderTime = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date()),
+                            volume = 1.0,
+                            weight = 1.0,
+                            price = 100.0
+                        )
+
+                        Data.orders?.add(order)
+                        Data.completedOrders.add(CompletedOrderItem(order))
+
+                        Toast.makeText(this@MapActivity, "Новый заказ добавлен!", Toast.LENGTH_SHORT).show()
+                        orderState = OrderState.NONE
+
+                        if (::map.isInitialized) {
+                            map.clear()
+                            plotOrders()
+                        }
+                    }
+                }
+
+
+                else -> {}
+            }
+        }
 
 
     }
@@ -166,11 +267,12 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
         fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
             location?.let {
-                val currentLatLng = LatLng(it.latitude, it.longitude)
-                map.showCurrentLocationMarker(currentLatLng)
+                currentLatLng = LatLng(it.latitude, it.longitude)
+                map.showCurrentLocationMarker(currentLatLng!!)
             }
         }
     }
+
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
@@ -220,9 +322,15 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onResume()
         if (::map.isInitialized) {
             map.clear()
-            plotOrders()
+            try {
+                showCurrentLocation()
+                plotOrders()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
+
 
 
 
@@ -259,4 +367,27 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         return poly
     }
+
+    suspend fun getAddressString(context: Context, latLng: LatLng): String? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val geocoder = Geocoder(context, Locale.getDefault())
+                val addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
+                if (!addresses.isNullOrEmpty()) {
+                    addresses[0].getAddressLine(0) // <- Это строка адреса
+                } else {
+                    null
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+        }
+    }
+}
+
+private enum class OrderState {
+    NONE,
+    SELECTING_SENDER,
+    SELECTING_RECIPIENT
 }
