@@ -2,5 +2,9 @@
     <item
         android:id="@+id/menu_add_order"
         android:title="Добавить заказ" />
+    <item
+        android:id="@+id/menu_export_completed_orders"
+        android:title="Экспорт завершённых заказов"/>
+
 
 </menu>

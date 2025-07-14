@@ -9,6 +9,7 @@ import android.graphics.Color
 import android.location.Geocoder
 import android.location.Location
 import android.os.Bundle
+import android.os.Environment
 import android.util.Log
 import android.widget.ImageButton
 import android.widget.PopupMenu
@@ -33,6 +34,7 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import kotlinx.coroutines.*
 import com.google.android.gms.maps.model.PolylineOptions
+import com.google.gson.Gson
 
 import okhttp3.Call
 import okhttp3.Callback
@@ -40,6 +42,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import org.json.JSONObject
+import java.io.File
+import java.io.FileWriter
 
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -63,6 +67,12 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+            1001
+        )
+
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -77,6 +87,10 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                     R.id.menu_add_order -> {
                         orderState = OrderState.SELECTING_SENDER
                         Toast.makeText(this, "Долгим нажатием укажите адрес отправителя", Toast.LENGTH_LONG).show()
+                        true
+                    }
+                    R.id.menu_export_completed_orders -> {
+                        exportCompletedOrdersToJson()
                         true
                     }
                     else -> false
@@ -203,7 +217,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                             )
                         )
 
-                        // Переход к следующему шагу
                         Toast.makeText(this@MapActivity, "Теперь выберите адрес получателя", Toast.LENGTH_LONG).show()
                         orderState = OrderState.SELECTING_RECIPIENT
                     }
@@ -304,7 +317,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                     val routes = json.getJSONArray("routes")
                     if (routes.length() > 0) {
                         val overviewPolyline = routes.getJSONObject(0)
-                            .getString("geometry") // в OSRM поле называется geometry
+                            .getString("geometry")
 
                         val points = decodePolyline(overviewPolyline)
 
@@ -374,7 +387,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                 val geocoder = Geocoder(context, Locale.getDefault())
                 val addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
                 if (!addresses.isNullOrEmpty()) {
-                    addresses[0].getAddressLine(0) // <- Это строка адреса
+                    addresses[0].getAddressLine(0)
                 } else {
                     null
                 }
@@ -384,6 +397,25 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
     }
+
+    private fun exportCompletedOrdersToJson() {
+        val gson = Gson()
+        val json = gson.toJson(Data.completedOrders)
+
+        val fileName = "completed_orders_${System.currentTimeMillis()}.json"
+
+        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val file = File(downloadsDir, fileName)
+
+        try {
+            FileWriter(file).use { it.write(json) }
+            Toast.makeText(this, "Файл сохранен: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Ошибка при сохранении файла", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 }
 
 private enum class OrderState {
